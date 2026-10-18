@@ -6,16 +6,27 @@
     <h2>SignalR Chat</h2>
 
     <div id="joinPanel" class="card card-body mb-3">
-        <p class="text-muted mb-2">Choose a username to join the chat.</p>
-        <div class="input-group">
+        <p class="text-muted mb-2">Choose a username and a room to join.</p>
+        <div class="mb-2">
             <input id="userInput" class="form-control" placeholder="Your username" maxlength="30" />
-            <button id="joinButton" class="btn btn-primary">Join chat</button>
         </div>
+        <div class="mb-2">
+            <input id="roomInput" class="form-control" placeholder="Room" maxlength="30" value="General" />
+        </div>
+        <button id="joinButton" class="btn btn-primary">Join chat</button>
         <div id="joinError" class="text-danger small mt-2"></div>
     </div>
 
     <div id="chatPanel" class="d-none">
-        <p class="text-muted">Chatting as <strong id="currentUserLabel"></strong></p>
+        <p class="text-muted">
+            Chatting as <strong id="currentUserLabel"></strong>
+            in <strong id="currentRoomLabel"></strong>
+        </p>
+
+        <div class="input-group mb-2">
+            <input id="roomSwitchInput" class="form-control" placeholder="Switch to room..." maxlength="30" />
+            <button id="switchRoomButton" class="btn btn-outline-secondary">Switch</button>
+        </div>
 
         <div id="messages"
              class="border rounded p-3 mb-3 bg-light"

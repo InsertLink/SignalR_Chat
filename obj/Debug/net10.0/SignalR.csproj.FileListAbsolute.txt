@@ -90,12 +90,10 @@ D:\tools\projects\SignalR\obj\Debug\net10.0\staticwebassets.build.json.cache
 D:\tools\projects\SignalR\obj\Debug\net10.0\staticwebassets.development.json
 D:\tools\projects\SignalR\obj\Debug\net10.0\staticwebassets.build.endpoints.json
 D:\tools\projects\SignalR\obj\Debug\net10.0\swae.build.ex.cache
-D:\tools\projects\SignalR\obj\Debug\net10.0\staticwebassets.upToDateCheck.txt
 D:\tools\projects\SignalR\obj\Debug\net10.0\SignalR.dll
 D:\tools\projects\SignalR\obj\Debug\net10.0\refint\SignalR.dll
 D:\tools\projects\SignalR\obj\Debug\net10.0\SignalR.pdb
 D:\tools\projects\SignalR\obj\Debug\net10.0\SignalR.genruntimeconfig.cache
 D:\tools\projects\SignalR\obj\Debug\net10.0\ref\SignalR.dll
-D:\tools\projects\SignalR\obj\Debug\net10.0\SignalR.csproj.Up2Date
 D:\tools\projects\SignalR\obj\Debug\net10.0\SignalR.sourcelink.json
-D:\tools\projects\SignalR\obj\Debug\net10.0\compressed\mcsbbxo0u1-{0}-2kv8ow7zkb-2kv8ow7zkb.gz
+D:\tools\projects\SignalR\obj\Debug\net10.0\compressed\mcsbbxo0u1-{0}-rtkr8fz9gh-rtkr8fz9gh.gz

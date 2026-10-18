@@ -5,17 +5,24 @@ const connection = new signalR.HubConnectionBuilder()
     .withAutomaticReconnect()
     .build();
 
-const userInput = document.getElementById("userInput");
-const joinButton = document.getElementById("joinButton");
-const joinError = document.getElementById("joinError");
-const joinPanel = document.getElementById("joinPanel");
-const chatPanel = document.getElementById("chatPanel");
-const currentUserLabel = document.getElementById("currentUserLabel");
-const messageInput = document.getElementById("messageInput");
-const sendButton = document.getElementById("sendButton");
-const messages = document.getElementById("messages");
+const $ = (id) => document.getElementById(id);
 
-let currentUser = null; // set only after RegisterUser succeeds
+const userInput = $("userInput");
+const roomInput = $("roomInput");
+const joinButton = $("joinButton");
+const joinError = $("joinError");
+const joinPanel = $("joinPanel");
+const chatPanel = $("chatPanel");
+const currentUserLabel = $("currentUserLabel");
+const currentRoomLabel = $("currentRoomLabel");
+const roomSwitchInput = $("roomSwitchInput");
+const switchRoomButton = $("switchRoomButton");
+const messageInput = $("messageInput");
+const sendButton = $("sendButton");
+const messages = $("messages");
+
+let currentUser = null;
+let currentRoom = null;
 
 function escapeHtml(text) {
     const div = document.createElement("div");
@@ -31,17 +38,30 @@ function addSystemMessage(text) {
     messages.scrollTop = messages.scrollHeight;
 }
 
+function clearMessages() {
+    messages.innerHTML = "";
+}
+
 // --- Incoming handlers ---
 
-connection.on("ReceiveMessage", (user, message) => {
+connection.on("ReceiveMessage", (user, message, room) => {
     const div = document.createElement("div");
     div.innerHTML = `<strong>${escapeHtml(user)}:</strong> ${escapeHtml(message)}`;
     messages.appendChild(div);
     messages.scrollTop = messages.scrollHeight;
 });
 
-connection.on("UserJoined", (user) => addSystemMessage(`${user} joined the chat`));
-connection.on("UserLeft",   (user) => addSystemMessage(`${user} left the chat`));
+connection.on("UserJoined", (user, room) => addSystemMessage(`${user} joined #${room}`));
+connection.on("UserLeft",   (user, room) => addSystemMessage(`${user} left #${room}`));
+
+connection.on("RoomChanged", (room) => {
+    currentRoom = room;
+    currentRoomLabel.textContent = `#${room}`;
+    clearMessages();
+    addSystemMessage(`You joined #${room}`);
+    roomSwitchInput.value = "";
+    messageInput.focus();
+});
 
 // --- Join flow ---
 
@@ -49,19 +69,29 @@ async function join() {
     joinError.textContent = "";
 
     const name = userInput.value.trim();
+    const room = roomInput.value.trim() || "General";
+
     if (!name) {
         joinError.textContent = "Please enter a username.";
         return;
     }
 
+    if (connection.state !== signalR.HubConnectionState.Connected) {
+    joinError.textContent = "Not connected. Please wait for the reconnect.";
+    return;
+    }
+
     joinButton.disabled = true;
     try {
-        await connection.invoke("RegisterUser", name);
+        await connection.invoke("RegisterUser", name, room);
         currentUser = name;
+        currentRoom = room;
         currentUserLabel.textContent = name;
+        currentRoomLabel.textContent = `#${room}`;
         joinPanel.classList.add("d-none");
         chatPanel.classList.remove("d-none");
-        addSystemMessage(`You joined as ${name}`);
+        clearMessages();
+        addSystemMessage(`You joined #${room}`);
         messageInput.focus();
     } catch (err) {
         joinError.textContent = err.message ?? "Could not join. Try a different username.";
@@ -69,16 +99,39 @@ async function join() {
     }
 }
 
+// --- Room switching ---
+
+async function switchRoom() {
+    const room = roomSwitchInput.value.trim();
+    if (!room) return;
+    if (connection.state !== signalR.HubConnectionState.Connected) {
+    joinError.textContent = "Not connected. Please wait for the reconnect.";
+    return;
+    }
+    try {
+        await connection.invoke("ChangeRoom", room);
+        // Note: label + message clear happen in the RoomChanged handler above,
+        // which keeps the UI consistent if you ever add server-side room broadcasts.
+    } catch (err) {
+        addSystemMessage(`Could not switch: ${err.message}`);
+    }
+}
+
 // --- Sending ---
 
 async function sendMessage() {
-    if (!currentUser) return; // not registered → nothing to do
+    if (!currentUser) return;
 
     const text = messageInput.value.trim();
     if (!text) return;
 
+    if (connection.state !== signalR.HubConnectionState.Connected) {
+        addSystemMessage("Not connected — waiting for reconnect…");
+        return;
+    }
+
     try {
-        await connection.invoke("SendMessage", text); // note: no name argument anymore
+        await connection.invoke("SendMessage", text);
         messageInput.value = "";
         messageInput.focus();
     } catch (err) {
@@ -88,23 +141,27 @@ async function sendMessage() {
 
 joinButton.addEventListener("click", join);
 userInput.addEventListener("keydown", (e) => { if (e.key === "Enter") join(); });
+roomInput.addEventListener("keydown", (e) => { if (e.key === "Enter") join(); });
+switchRoomButton.addEventListener("click", switchRoom);
+roomSwitchInput.addEventListener("keydown", (e) => { if (e.key === "Enter") switchRoom(); });
 sendButton.addEventListener("click", sendMessage);
 messageInput.addEventListener("keydown", (e) => { if (e.key === "Enter") sendMessage(); });
 
-// --- Reconnect: must re-register (new ConnectionId) ---
+// --- Reconnect ---
 
 connection.onreconnecting(() => addSystemMessage("Reconnecting…"));
 connection.onreconnected(async () => {
-    if (!currentUser) return; // never joined → nothing to re-register
+    if (!currentUser) return;
     try {
-        await connection.invoke("RegisterUser", currentUser);
+        // New ConnectionId → old group membership is gone → re-register
+        await connection.invoke("RegisterUser", currentUser, currentRoom);
         addSystemMessage("Reconnected");
     } catch (err) {
         addSystemMessage(`Could not re-register: ${err.message}`);
     }
 });
 
-// --- Start connection (does NOT register; registration is explicit) ---
+// --- Start (connection only; registration is explicit) ---
 
 connection.start()
     .then(() => console.log("Connected to /chatHub"))
@@ -112,3 +169,4 @@ connection.start()
         console.error("Connection failed:", err);
         joinError.textContent = "Could not connect to the chat server.";
     });
+
